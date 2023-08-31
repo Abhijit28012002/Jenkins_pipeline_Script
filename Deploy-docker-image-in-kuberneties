@@ -1,0 +1,40 @@
+pipeline{
+    agent any
+    stages{
+        stage("CodeCloning"){
+            steps{
+                echo "Cloning the code from GitHub"
+                git url:"https://github.com/Abhijit28012002/djangos-notes-app.git", branch: "main"
+               
+            }
+        }
+        stage("BuildDockerImage"){
+            steps{
+                echo "Build Docker Image"
+                sh "docker build -t my-note-app ."
+                
+            }
+        }
+        stage("PushImage"){
+            steps{
+                script{
+                    echo "Push Docker Image In DockerHub"
+                    withCredentials([string(credentialsId: 'dockerHubpwd', variable: 'dockerHubPassword')]) {
+                        sh 'docker tag my-note-app  abhijit28/my-note-app:latest'
+                        sh 'docker login -u abhijit28 -p ${dockerHubPassword}'
+                        sh 'docker push abhijit28/my-note-app:latest'
+                    }
+                }
+            }
+        }
+        stage("Deploy to kubernetes"){
+            steps{
+                script{
+                    echo "Launch Pod in Minikube"
+                    kubernetesDeploy (configs: 'deployment.yml',kubeconfigId: 'kubernetesConfig')
+                    
+                }
+            }
+        }
+    }
+}
